@@ -1,5 +1,6 @@
 #include <opencv2/opencv.hpp>
 #include <torch/script.h>
+#include <torch/torch.h>
 #include <iostream>
 #include <fstream>
 #include <sstream>
@@ -23,10 +24,10 @@ Mat estimate_depth(torch::jit::script::Module& model, const Mat& image) {
 
     torch::Tensor tensor_image = torch::from_blob(input.data, {1, input.rows, input.cols, 3}, torch::kFloat32);
     tensor_image = tensor_image.permute({0, 3, 1, 2});
-    tensor_image = torch::nn::functional::interpolate(tensor_image, torch::nn::functional::InterpolateFuncOptions().size({384, 384}).mode(torch::kBicubic).align_corners(false));
+    tensor_image = torch::upsample_bicubic2d(tensor_image, {384, 384}, /*align_corners=*/false);
 
     torch::Tensor depth_map = model.forward({tensor_image}).toTensor();
-    depth_map = torch::nn::functional::interpolate(depth_map.unsqueeze(1), torch::nn::functional::InterpolateFuncOptions().size({input.rows, input.cols}).mode(torch::kBicubic).align_corners(false)).squeeze().detach();
+    depth_map = torch::upsample_bicubic2d(depth_map.unsqueeze(1), {input.rows, input.cols}, /*align_corners=*/false).squeeze().detach();
 
     Mat depth_image(input.rows, input.cols, CV_32F, depth_map.data_ptr());
     normalize(depth_image, depth_image, 0, 1, NORM_MINMAX);
@@ -77,3 +78,4 @@ int main() {
     destroyAllWindows();
     return 0;
 }
+
