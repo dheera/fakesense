@@ -1,0 +1,13 @@
+[Unit]
+Description=FakeSense Depth Camera Service
+After=network.target
+
+[Service]
+ExecStart=/path/to/fakesense
+WorkingDirectory=/path/to
+Restart=always
+User=root
+ExecStartPre=/sbin/modprobe v4l2loopback
+
+[Install]
+WantedBy=multi-user.target
